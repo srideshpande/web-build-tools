@@ -10,10 +10,10 @@ import {
 
 import {
   IChangeInfo,
-  ChangeType
-} from '../../data/ChangeManagement';
-import RushConfigurationProject from '../../data/RushConfigurationProject';
-import Npm from '../../utilities/Npm';
+  ChangeType,
+  RushConfigurationProject,
+  Npm
+} from '../../index';
 import RushCommandLineParser from './RushCommandLineParser';
 import PublishUtilities from '../utilities/PublishUtilities';
 import ChangelogGenerator from '../utilities/ChangelogGenerator';

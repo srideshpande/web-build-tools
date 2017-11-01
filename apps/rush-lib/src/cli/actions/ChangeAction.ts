@@ -14,27 +14,28 @@ import {
   CommandLineStringParameter
 } from '@microsoft/ts-command-line';
 
-import RushConfigurationProject from '../../data/RushConfigurationProject';
 import {
+  RushConfigurationProject,
   IChangeFile,
-  IChangeInfo
-} from '../../data/ChangeManagement';
-import VersionControl from '../../utilities/VersionControl';
-import { ChangeFile } from '../../data/ChangeFile';
+  IChangeInfo,
+  VersionControl,
+  ChangeFile
+} from '../../index';
+
 import { BaseRushAction } from './BaseRushAction';
 import RushCommandLineParser from './RushCommandLineParser';
 import ChangeFiles from '../utilities/ChangeFiles';
-import {
-  VersionPolicy,
-  IndividualVersionPolicy,
-  VersionPolicyDefinitionName
-} from '../../data/VersionPolicy';
+
+const BUMP_OPTIONS: { [type: string]: string } = {
+  'major': 'major - for breaking changes (ex: renaming a file)',
+  'minor': 'minor - for adding new features (ex: exposing a new public API)',
+  'patch': 'patch - for fixes (ex: updating how an API works without touching its signature)'
+};
 
 export default class ChangeAction extends BaseRushAction {
   private _parser: RushCommandLineParser;
   private _sortedProjectList: string[];
   private _changeFileData: Map<string, IChangeFile>;
-  private _changeComments: Map<string, string[]>;
   private _verifyParameter: CommandLineFlagParameter;
   private _targetBranchParameter: CommandLineStringParameter;
   private _targetBranchName: string;
@@ -100,8 +101,6 @@ export default class ChangeAction extends BaseRushAction {
 
     this._prompt = inquirer.createPromptModule();
     this._changeFileData = new Map<string, IChangeFile>();
-    this._changeComments = ChangeFiles.getChangeComments(this._getChangeFiles(),
-      this._sortedProjectList);
 
     // We should consider making onExecute either be an async/await or have it return a promise
     this._promptLoop()
@@ -140,7 +139,9 @@ export default class ChangeAction extends BaseRushAction {
   }
 
   private _validateChangeFile(changedPackages: string[]): void {
-    const files: string[] = this._getChangeFiles();
+    const files: string[] = this._getChangeFiles().map(relativePath => {
+      return path.join(this.rushConfiguration.rushJsonFolder, relativePath);
+    });
     if (files.length === 0) {
       throw new Error(`No change file is found. Run 'rush change' to generate a change file.`);
     }
@@ -148,9 +149,7 @@ export default class ChangeAction extends BaseRushAction {
   }
 
   private _getChangeFiles(): string[] {
-    return VersionControl.getChangedFiles(`common/changes/`, this._targetBranch).map(relativePath => {
-      return path.join(this.rushConfiguration.rushJsonFolder, relativePath);
-    });
+    return VersionControl.getChangedFiles(`common/changes/`, this._targetBranch);
   }
 
   private _hasProjectChanged(changedFolders: Array<string | undefined>,
@@ -173,23 +172,24 @@ export default class ChangeAction extends BaseRushAction {
    * have any more, at which point we collect their email and write the change file.
    */
   private _promptLoop(): Promise<void> {
+
     // If there are still projects, ask about the next one
     if (this._sortedProjectList.length) {
       return this._askQuestions(this._sortedProjectList.pop()!)
         .then((answers: IChangeInfo) => {
-          if (answers) {
-            // Save the info into the changefile
-            let changeFile: IChangeFile | undefined = this._changeFileData.get(answers.packageName);
-            if (!changeFile) {
-              changeFile = {
-                changes: [],
-                packageName: answers.packageName,
-                email: undefined
-              };
-              this._changeFileData.set(answers.packageName, changeFile!);
-            }
-            changeFile!.changes.push(answers);
+
+          // Save the info into the changefile
+          let changeFile: IChangeFile | undefined = this._changeFileData.get(answers.packageName);
+          if (!changeFile) {
+            changeFile = {
+              changes: [],
+              packageName: answers.packageName,
+              email: undefined
+            };
+            this._changeFileData.set(answers.packageName, changeFile!);
           }
+          changeFile!.changes.push(answers);
+
           // Continue to loop
           return this._promptLoop();
 
@@ -209,102 +209,42 @@ export default class ChangeAction extends BaseRushAction {
   /**
    * Asks all questions which are needed to generate changelist for a project.
    */
-  private _askQuestions(packageName: string): Promise<IChangeInfo | undefined> {
+  private _askQuestions(packageName: string): Promise<IChangeInfo> {
     console.log(`${os.EOL}${packageName}`);
-    const comments: string[] | undefined = this._changeComments.get(packageName);
-    if (comments && comments.length) {
-      console.log(`Found existing comments:`);
-      comments.forEach(comment => {
-        console.log(`    > ${comment}`);
-      });
-      return this._prompt({
-        name: 'appendComment',
-        type: 'list',
-        default: 'skip',
-        message: 'Append to existing comments or skip?',
-        choices: [
-          {
-            'name': 'Skip',
-            'value': 'skip'
-          },
-          {
-            'name': 'Append',
-            'value': 'append'
-          }
-        ]
-      })
-      .then(({ appendComment }: { appendComment: 'skip' | 'append' }) => {
-        if (appendComment === 'skip') {
-          return undefined;
-        } else {
-          return this._promptForComments(packageName);
-        }
-      });
-    } else {
-      return this._promptForComments(packageName);
-    }
-  }
 
-  private _promptForComments(packageName: string): Promise<IChangeInfo | undefined> {
-    const bumpOptions: { [type: string]: string } = this._getBumpOptions(packageName);
     return this._prompt({
       name: 'comment',
       type: 'input',
       message: `Describe changes, or ENTER if no changes:`
     })
-    .then(({ comment }: { comment: string }) => {
-      if (Object.keys(bumpOptions).length === 0 || !comment) {
-        return {
-          comment: comment || '',
-          packageName: packageName,
-          type: 'none'
-        } as IChangeInfo;
-      } else {
-        return this._prompt({
-          choices: Object.keys(bumpOptions).map(option => {
+      .then(({ comment }: { comment: string }) => {
+        if (comment) {
+          return this._prompt({
+            choices: Object.keys(BUMP_OPTIONS).map(option => {
+              return {
+                'value': option,
+                'name': BUMP_OPTIONS[option]
+              };
+            }),
+            default: 'patch',
+            message: 'Select the type of change:',
+            name: 'bumpType',
+            type: 'list'
+          }).then(({ bumpType }: { bumpType: string }) => {
             return {
-              'value': option,
-              'name': bumpOptions[option]
-            };
-          }),
-          default: 'patch',
-          message: 'Select the type of change:',
-          name: 'bumpType',
-          type: 'list'
-        }).then(({ bumpType }: { bumpType: string }) => {
+              packageName: packageName,
+              comment: comment,
+              type: bumpType
+            } as IChangeInfo;
+          });
+        } else {
           return {
+            comment: '',
             packageName: packageName,
-            comment: comment,
-            type: bumpType
+            type: 'none'
           } as IChangeInfo;
-        });
-      }
-    });
-  }
-
-  private _getBumpOptions(packageName: string): {[type: string]: string } {
-    const project: RushConfigurationProject | undefined = this.rushConfiguration.getProjectByName(packageName);
-    const versionPolicy: VersionPolicy | undefined = project!.versionPolicy;
-
-    let bumpOptions: { [type: string]: string } = {
-      'major': 'major - for changes that break compatibility, e.g. removing an API',
-      'minor': 'minor - for backwards compatible changes, e.g. adding a new API',
-      'patch': 'patch - for changes that do not affect compatibility, e.g. fixing a bug'
-    };
-
-    if (versionPolicy) {
-      if (versionPolicy.definitionName === VersionPolicyDefinitionName.lockStepVersion) {
-        // No need to ask for bump types if project is lockstep versioned.
-        bumpOptions = {};
-      } else if (versionPolicy.definitionName === VersionPolicyDefinitionName.individualVersion) {
-        const individualPolicy: IndividualVersionPolicy = versionPolicy as IndividualVersionPolicy;
-        if (individualPolicy.lockedMajor !== undefined) {
-          // tslint:disable-next-line:no-string-literal
-          delete bumpOptions['major'];
         }
-      }
-    }
-    return bumpOptions;
+      });
   }
 
   /**

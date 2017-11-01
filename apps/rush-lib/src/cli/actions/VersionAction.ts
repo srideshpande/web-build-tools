@@ -6,12 +6,14 @@ import {
   CommandLineStringParameter
 } from '@microsoft/ts-command-line';
 
-import { BumpType } from '../../data/VersionPolicy';
-import IPackageJson from '../../utilities/IPackageJson';
-import RushConfiguration from '../../data/RushConfiguration';
-import Utilities from '../../utilities/Utilities';
-import VersionControl from '../../utilities/VersionControl';
-import { VersionMismatchFinder } from '../../data/VersionMismatchFinder';
+import {
+  BumpType,
+  IPackageJson,
+  RushConfiguration,
+  Utilities,
+  VersionControl,
+  VersionMismatchFinder
+} from '../../index';
 import RushCommandLineParser from './RushCommandLineParser';
 import GitPolicy from '../utilities/GitPolicy';
 import { BaseRushAction } from './BaseRushAction';

@@ -8,7 +8,7 @@ import { JsonFile, JsonSchema } from '@microsoft/node-core-library';
 import { VersionPolicy, BumpType } from './VersionPolicy';
 
 /**
- * @beta
+ * @alpha
  */
 export interface IVersionPolicyJson {
   policyName: string;
@@ -16,7 +16,7 @@ export interface IVersionPolicyJson {
 }
 
 /**
- * @beta
+ * @alpha
  */
 export interface ILockStepVersionJson extends IVersionPolicyJson {
   version: string;
@@ -24,23 +24,20 @@ export interface ILockStepVersionJson extends IVersionPolicyJson {
 }
 
 /**
- * @beta
+ * @alpha
  */
 export interface IIndividualVersionJson extends IVersionPolicyJson {
   lockedMajor?: number;
 }
 
 /**
- * @beta
+ * @alpha
  */
 export class VersionPolicyConfiguration {
   private static _jsonSchema: JsonSchema = JsonSchema.fromFile(path.join(__dirname, '../version-policies.schema.json'));
 
   private _versionPolicies: Map<string, VersionPolicy>;
 
-  /**
-   * @internal
-   */
   public constructor(private _jsonFileName: string) {
     this._versionPolicies = new Map<string, VersionPolicy>();
     this._loadFile();
@@ -93,7 +90,7 @@ export class VersionPolicyConfiguration {
     }
     const versionPolicyJson: IVersionPolicyJson[] = [];
     this.versionPolicies.forEach((versionPolicy) => {
-      versionPolicyJson.push(versionPolicy._json);
+      versionPolicyJson.push(versionPolicy.json);
     });
     if (shouldCommit) {
       JsonFile.save(versionPolicyJson, this._jsonFileName);

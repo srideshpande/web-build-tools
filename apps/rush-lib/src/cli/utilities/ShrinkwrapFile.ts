@@ -7,8 +7,7 @@ import * as os from 'os';
 import * as semver from 'semver';
 import npmPackageArg = require('npm-package-arg');
 
-import Utilities from '../../utilities/Utilities';
-import { RushConstants } from '../../RushConstants';
+import { Utilities, RushConstants } from '../../index';
 
 interface IShrinkwrapDependencyJson {
   version: string;

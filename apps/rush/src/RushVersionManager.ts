@@ -5,8 +5,8 @@ import * as path from 'path';
 import * as fsx from 'fs-extra';
 import * as semver from 'semver';
 
-import Utilities from '@microsoft/rush-lib/lib/utilities/Utilities';
-import * as rushLib from '@microsoft/rush-lib';
+import { Utilities } from '@microsoft/rush-lib';
+import * as rushLibCli from '@microsoft/rush-lib/lib/start';
 
 import RushWrapper from './RushWrapper';
 
@@ -54,15 +54,15 @@ export default class RushVersionManager {
       });
     } else {
       return new RushWrapper(() => {
-        const rushCliEntrypoint: typeof rushLib = require(path.join(
+        const rushCliEntrypoint: typeof rushLibCli = require(path.join(
           expectedRushPath,
           'node_modules',
           '@microsoft',
           'rush-lib',
           'lib',
-          'index'
+          'start'
         ));
-        rushCliEntrypoint.Rush.launch(this._currentPackageVersion, true);
+        rushCliEntrypoint.start(this._currentPackageVersion, true);
       });
     }
   }

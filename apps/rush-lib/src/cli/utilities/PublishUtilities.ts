@@ -11,13 +11,13 @@ import * as fsx from 'fs-extra';
 import * as path from 'path';
 import * as semver from 'semver';
 
-import IPackageJson from '../../utilities/IPackageJson';
 import {
+  IPackageJson,
   IChangeInfo,
-  ChangeType
-} from '../../data/ChangeManagement';
-import RushConfigurationProject from '../../data/RushConfigurationProject';
-import Utilities from '../../utilities/Utilities';
+  ChangeType,
+  RushConfigurationProject,
+  Utilities
+} from '../../index';
 import { execSync } from 'child_process';
 import PrereleaseToken from './PrereleaseToken';
 import ChangeFiles from './ChangeFiles';

@@ -1,13 +1,15 @@
 // Copyright (c) Microsoft Corporation. All rights reserved. Licensed under the MIT license.
 // See LICENSE in the project root for license information.
 
-import { IChangeInfo } from '../../data/ChangeManagement';
-import { IChangelog } from '../../data/Changelog';
-import IPackageJson from '../../utilities/IPackageJson';
-import RushConfiguration from '../../data/RushConfiguration';
-import RushConfigurationProject from '../../data/RushConfigurationProject';
-import { VersionPolicy } from '../../data/VersionPolicy';
-import { VersionPolicyConfiguration } from '../../data/VersionPolicyConfiguration';
+import {
+  IChangeInfo,
+  IChangelog,
+  IPackageJson,
+  RushConfiguration,
+  RushConfigurationProject,
+  VersionPolicy,
+  VersionPolicyConfiguration
+} from '../../index';
 import PublishUtilities, {
   IChangeInfoHash
 } from './PublishUtilities';

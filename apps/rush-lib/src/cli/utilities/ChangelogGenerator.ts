@@ -1,24 +1,20 @@
 // Copyright (c) Microsoft Corporation. All rights reserved. Licensed under the MIT license.
 // See LICENSE in the project root for license information.
 
-import * as fs from 'fs';
-import * as path from 'path';
-import * as semver from 'semver';
-
-import {
-  default as PublishUtilities,
+import PublishUtilities, {
   IChangeInfoHash
 } from './PublishUtilities';
 import {
   IChangeInfo,
-  ChangeType
-} from '../../data/ChangeManagement';
-import {
   IChangelog,
   IChangeLogEntry,
-  IChangeLogComment
-} from '../../data/Changelog';
-import RushConfigurationProject from '../../data/RushConfigurationProject';
+  IChangeLogComment,
+  ChangeType,
+  RushConfigurationProject
+} from '../../index';
+import * as fs from 'fs';
+import * as path from 'path';
+import * as semver from 'semver';
 
 const CHANGELOG_JSON: string = 'CHANGELOG.json';
 const CHANGELOG_MD: string = 'CHANGELOG.md';
@@ -210,7 +206,7 @@ export default class ChangelogGenerator {
       if (!comments) {
         markdown += ((changelog.entries.length === index + 1) ?
           '*Initial release*' :
-          '*Version update only*') +
+          '*Changes not tracked*') +
           EOL + EOL;
       } else {
         markdown += comments;
