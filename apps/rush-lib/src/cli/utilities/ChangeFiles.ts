@@ -5,9 +5,11 @@ import * as fsx from 'fs-extra';
 import { EOL } from 'os';
 import * as glob from 'glob';
 
-import Utilities from '../../utilities/Utilities';
-import { IChangeInfo } from '../../data/ChangeManagement';
-import { IChangelog } from '../../data/Changelog';
+import {
+  Utilities,
+  IChangeInfo,
+  IChangelog
+} from '../../index';
 
 /**
  * This class represents the collection of change files existing in the repo and provides operations
@@ -29,13 +31,14 @@ export default class ChangeFiles {
     newChangeFilePaths.forEach((filePath) => {
       console.log(`Found change file: ${filePath}`);
       const changeRequest: IChangeInfo = JSON.parse(fsx.readFileSync(filePath, 'utf8'));
-      if (changeRequest && changeRequest.changes) {
-        changeRequest.changes!.forEach(change => {
-          changedSet.add(change.packageName);
-        });
-      } else {
-        throw new Error(`Invalid change file: ${filePath}`);
-      }
+      changeRequest.changes!.forEach(change => {
+        if (changedSet.has(change.packageName)) {
+          const duplicateError: string = `Project ${change.packageName} has more than one entries. ` +
+            `Delete the duplicate change file and commit.`;
+          throw new Error(duplicateError);
+        }
+        changedSet.add(change.packageName);
+      });
     });
 
     const requiredSet: Set<string> = new Set(changedPackages);
@@ -49,31 +52,6 @@ export default class ChangeFiles {
       });
       throw new Error(`Change file does not contain ${missingProjects.join(',')}.`);
     }
-  }
-
-  public static getChangeComments(
-    newChangeFilePaths: string[],
-    changedPackages: string[]
-  ): Map<string, string[]> {
-    const changes: Map<string, string[]> = new Map<string, string[]>();
-
-    newChangeFilePaths.forEach((filePath) => {
-      console.log(`Found change file: ${filePath}`);
-      const changeRequest: IChangeInfo = JSON.parse(fsx.readFileSync(filePath, 'utf8'));
-      if (changeRequest && changeRequest.changes) {
-        changeRequest.changes!.forEach(change => {
-          if (!changes.get(change.packageName)) {
-            changes.set(change.packageName, []);
-          }
-          if (change.comment && change.comment.length) {
-            changes.get(change.packageName)!.push(change.comment);
-          }
-        });
-      } else {
-        throw new Error(`Invalid change file: ${filePath}`);
-      }
-    });
-    return changes;
   }
 
   constructor(private _changesPath: string) {

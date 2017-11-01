@@ -296,7 +296,7 @@ export default class Utilities {
    * @param command - the command to run on shell
    * @param workingDirectory - working directory for running this command
    * @param environmentVariables - environment variables for running this command
-   * @beta
+   * @alpha
    */
   public static executeShellCommand(
     command: string,
@@ -332,7 +332,7 @@ export default class Utilities {
    * @param command - the command to run on shell
    * @param workingDirectory - working directory for running this command
    * @param environmentVariables - environment variables for running this command
-   * @beta
+   * @alpha
    */
   public static executeShellCommandAsync(
     command: string,

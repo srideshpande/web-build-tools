@@ -5,7 +5,7 @@ import { IEventHooksJson } from './RushConfiguration';
 
 /**
  * Events happen during Rush runs.
- * @beta
+ * @alpha
  */
 export enum Event {
   /**
@@ -30,14 +30,11 @@ export enum Event {
  * This class represents Rush event hooks configured for this repo.
  * Hooks are customized script actions that Rush executes when specific events occur.
  * The actions are expressed as a command-line that is executed using the operating system shell.
- * @beta
+ * @alpha
  */
 export default class EventHooks {
   private _hooks: Map<Event, string[]>;
 
-  /**
-   * @internal
-   */
   public constructor(eventHooksJson: IEventHooksJson) {
     this._hooks = new Map<Event, string[]>();
     Object.getOwnPropertyNames(eventHooksJson).forEach((name) => {

@@ -10,14 +10,14 @@ import * as tar from 'tar';
 import readPackageTree = require('read-package-tree');
 import { JsonFile } from '@microsoft/node-core-library';
 
-import { RushConstants } from '../../RushConstants';
 import {
-  default as RushConfiguration,
-  IRushLinkJson
-} from '../../data/RushConfiguration';
-import RushConfigurationProject from '../../data/RushConfigurationProject';
-import Utilities from '../../utilities/Utilities';
-import { Stopwatch } from '../../utilities/Stopwatch';
+  RushConstants,
+  RushConfiguration,
+  IRushLinkJson,
+  RushConfigurationProject,
+  Utilities,
+  Stopwatch
+} from '../../index';
 import Package, { IResolveOrCreateResult, PackageDependencyKind } from './Package';
 import PackageLookup from './PackageLookup';
 

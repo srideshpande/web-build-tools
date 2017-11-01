@@ -7,14 +7,9 @@ class LoadThemedStylesMock {
   public static loadedData: string[] = [];
   public static calledWithAsync: boolean[] = [];
 
-  public static loadStyles(data: string): void {
+  public static loadStyles(data: string, async: boolean): void {
     this.loadedData.push(data);
-    this.calledWithAsync.push(false);
-  }
-
-  public static loadStylesAsync(data: string): void {
-    this.loadedData.push(data);
-    this.calledWithAsync.push(true);
+    this.calledWithAsync.push(async);
   }
 }
 

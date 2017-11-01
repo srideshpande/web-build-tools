@@ -5,8 +5,10 @@ import * as path from 'path';
 import * as fsx from 'fs-extra';
 import { cloneDeep } from 'lodash';
 
-import RushConfiguration from '../../data/RushConfiguration';
-import Rush from '../../Rush';
+import {
+  RushConfiguration,
+  rushVersion
+} from '../../index';
 
 export interface ITelemetryData {
   name: string;
@@ -40,7 +42,7 @@ export default class Telemetry {
     const data: ITelemetryData = cloneDeep(telemetryData);
     data.timestamp = data.timestamp || new Date().getTime();
     data.platform = data.platform || process.platform;
-    data.rushVersion = data.rushVersion || Rush.version;
+    data.rushVersion = data.rushVersion || rushVersion;
     this._store.push(data);
   }
 

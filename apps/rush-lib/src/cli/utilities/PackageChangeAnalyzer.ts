@@ -8,8 +8,10 @@ import {
   IPackageDeps
 } from '@microsoft/package-deps-hash';
 
-import RushConfiguration from '../../data/RushConfiguration';
-import { RushConstants } from '../../RushConstants';
+import {
+  RushConfiguration,
+  RushConstants
+} from '../../index';
 
 export class PackageChangeAnalyzer {
   public static _instance: PackageChangeAnalyzer | undefined;

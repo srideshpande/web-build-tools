@@ -4,8 +4,10 @@
 import { assert } from 'chai';
 import * as path from 'path';
 
-import RushConfiguration from '../../../data/RushConfiguration';
-import Rush from '../../../Rush';
+import {
+  RushConfiguration,
+  rushVersion
+} from '../../../index';
 import {
   default as Telemetry,
   ITelemetryData
@@ -22,7 +24,7 @@ describe('Telemetry', () => {
       result: 'Succeeded',
       timestamp: new Date().getTime(),
       platform: process.platform,
-      rushVersion: Rush.version
+      rushVersion: rushVersion
     };
 
     const logData2: ITelemetryData = {
@@ -31,7 +33,7 @@ describe('Telemetry', () => {
       result: 'Failed',
       timestamp: new Date().getTime(),
       platform: process.platform,
-      rushVersion: Rush.version
+      rushVersion: rushVersion
     };
 
     telemetry.log(logData1);
@@ -49,7 +51,7 @@ describe('Telemetry', () => {
       result: 'Succeeded',
       timestamp: new Date().getTime(),
       platform: process.platform,
-      rushVersion: Rush.version
+      rushVersion: rushVersion
     };
 
     telemetry.log(logData);
@@ -66,7 +68,7 @@ describe('Telemetry', () => {
       result: 'Succeeded',
       timestamp: new Date().getTime(),
       platform: process.platform,
-      rushVersion: Rush.version
+      rushVersion: rushVersion
     };
 
     telemetry.log(logData);
@@ -94,7 +96,7 @@ describe('Telemetry', () => {
     telemetry.log(logData);
     const result: ITelemetryData = telemetry.store[0];
     assert.equal(result.platform, process.platform);
-    assert.equal(result.rushVersion, Rush.version);
+    assert.equal(result.rushVersion, rushVersion);
     assert.isDefined(result.timestamp);
   });
 });

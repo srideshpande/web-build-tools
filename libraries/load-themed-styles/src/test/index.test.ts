@@ -1,31 +1,28 @@
-// Copyright (c) Microsoft Corporation. All rights reserved. Licensed under the MIT license.
-// See LICENSE in the project root for license information.
-
 /// <reference types="mocha" />
 
 import { expect } from 'chai';
 import {
-  _detokenize,
+  detokenize,
   loadTheme,
   splitStyles,
   loadStyles,
   configureLoadStyles,
   IThemingInstruction
-} from '../loadThemedStylesHelpers';
+} from './../index';
 
 describe('detokenize', () => {
   it('handles colors', () => {
-    expect(_detokenize('"[theme:name, default: #FFF]"')).to.equal('#FFF');
-    expect(_detokenize('"[theme: name, default: #FFF]"')).to.equal('#FFF');
-    expect(_detokenize('"[theme: name , default: #FFF  ]"')).to.equal('#FFF');
+    expect(detokenize('"[theme:name, default: #FFF]"')).to.equal('#FFF');
+    expect(detokenize('"[theme: name, default: #FFF]"')).to.equal('#FFF');
+    expect(detokenize('"[theme: name , default: #FFF  ]"')).to.equal('#FFF');
   });
 
   it('handles rgba', () => {
-    expect(_detokenize('"[theme:name, default: rgba(255,255,255,.5)]"')).to.equal('rgba(255,255,255,.5)');
+    expect(detokenize('"[theme:name, default: rgba(255,255,255,.5)]"')).to.equal('rgba(255,255,255,.5)');
   });
 
   it('handles fonts', () => {
-    expect(_detokenize('"[theme:name, default: "Segoe UI"]"')).to.equal('"Segoe UI"');
+    expect(detokenize('"[theme:name, default: "Segoe UI"]"')).to.equal('"Segoe UI"');
   });
 
   it('respects theme', () => {
@@ -34,20 +31,20 @@ describe('detokenize', () => {
     });
 
     try {
-      expect(_detokenize('"[theme:color, default: #FFF]"')).to.equal('red');
-      expect(_detokenize('"[theme: color , default: #FFF]"')).to.equal('red');
+      expect(detokenize('"[theme:color, default: #FFF]"')).to.equal('red');
+      expect(detokenize('"[theme: color , default: #FFF]"')).to.equal('red');
     } finally {
       loadTheme(undefined);
     }
   });
 
   it('ignores malformed themes', () => {
-    expect(_detokenize('"[theme:name, default: "Segoe UI"]')).to.equal('"[theme:name, default: "Segoe UI"]');
-    expect(_detokenize('"[theme:]"')).to.equal('"[theme:]"');
+    expect(detokenize('"[theme:name, default: "Segoe UI"]')).to.equal('"[theme:name, default: "Segoe UI"]');
+    expect(detokenize('"[theme:]"')).to.equal('"[theme:]"');
   });
 
   it('translates missing themes', () => {
-    expect(_detokenize('"[theme:name]"')).to.equal('inherit');
+    expect(detokenize('"[theme:name]"')).to.equal('inherit');
   });
 
   it('splits non-themable CSS', () => {

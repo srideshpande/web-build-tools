@@ -7,9 +7,9 @@ import { JsonFile } from '@microsoft/node-core-library';
 import {
   IPackageJson,
   RushConfiguration,
-  Rush
+  Utilities
 } from '@microsoft/rush-lib';
-import Utilities from '@microsoft/rush-lib/lib/utilities/Utilities';
+import { start } from '@microsoft/rush-lib/lib/start';
 
 import MinimalRushConfiguration from './MinimalRushConfiguration';
 import RushVersionManager from './RushVersionManager';
@@ -27,7 +27,7 @@ if (process.argv[2] === RUSH_PURGE_OPTION_NAME) {
   const configuration: MinimalRushConfiguration | undefined = MinimalRushConfiguration.loadFromDefaultLocation();
   const currentPackageJson: IPackageJson = JsonFile.load(path.join(__dirname, '..', 'package.json'));
 
-  if (configuration && configuration.rushVersion !== currentPackageJson.version) {
+  if (configuration) {
     const versionManager: RushVersionManager = new RushVersionManager(
       configuration.homeFolder,
       currentPackageJson.version
@@ -35,6 +35,6 @@ if (process.argv[2] === RUSH_PURGE_OPTION_NAME) {
     const rushWrapper: RushWrapper = versionManager.ensureRushVersionInstalled(configuration.rushVersion);
     rushWrapper.invokeRush();
   } else {
-    Rush.launch(currentPackageJson.version, false);
+    start(currentPackageJson.version, false);
   }
 }

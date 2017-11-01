@@ -1,23 +1,6 @@
 # Change Log - @microsoft/gulp-core-build-webpack
 
-This log was last generated on Wed, 01 Nov 2017 21:06:08 GMT and should not be manually modified.
-
-## 3.2.11
-Wed, 01 Nov 2017 21:06:08 GMT
-
-### Patches
-
-- Upgrade cyclic dependencies
-
-## 3.2.10
-Tue, 31 Oct 2017 21:04:04 GMT
-
-*Changes not tracked*
-
-## 3.2.9
-Tue, 31 Oct 2017 16:04:55 GMT
-
-*Changes not tracked*
+This log was last generated on Wed, 25 Oct 2017 20:03:59 GMT and should not be manually modified.
 
 ## 3.2.8
 Wed, 25 Oct 2017 20:03:59 GMT

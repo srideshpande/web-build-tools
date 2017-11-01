@@ -3,24 +3,14 @@
 
 import * as argparse from 'argparse';
 import * as colors from 'colors';
-
 import CommandLineAction from './CommandLineAction';
 import { ICommandLineParserData } from './CommandLineParameter';
 import CommandLineParameterProvider from './CommandLineParameterProvider';
 
-/**
- * Options for the {@link CommandLineParser} constructor.
- * @public
- */
 export interface ICommandListParserOptions {
-  /**
-   * The name of your tool when invoked from the command line
-   */
+  // The name of your tool when invoked from the command line
   toolFilename: string;
-
-  /**
-   * General documentation that is included in the "--help" main page
-   */
+  // General documentation that is included in the "--help" main page
   toolDescription: string;
 }
 
@@ -31,16 +21,9 @@ export interface ICommandListParserOptions {
  * is awkward to use.  The abstract base classes CommandLineParser and CommandLineAction
  * provide a wrapper for "argparse" that makes defining and consuming arguments quick
  * and simple, and enforces that appropriate documentation is provided for each parameter.
- *
- * @public
  */
 abstract class CommandLineParser extends CommandLineParameterProvider {
-  /**
-   * Reports which CommandLineAction was selected on the command line.
-   * @remarks
-   * The value will be assigned before onExecute() is invoked.
-   */
-  protected selectedAction: CommandLineAction;
+  protected chosenAction: CommandLineAction;
 
   private _actionsSubParser: argparse.SubParser;
   private _options: ICommandListParserOptions;
@@ -52,7 +35,7 @@ abstract class CommandLineParser extends CommandLineParameterProvider {
     this._options = options;
     this._actions = [];
 
-    this._argumentParser = new argparse.ArgumentParser({
+    this.argumentParser = new argparse.ArgumentParser({
       addHelp: true,
       prog: this._options.toolFilename,
       description: this._options.toolDescription,
@@ -60,7 +43,7 @@ abstract class CommandLineParser extends CommandLineParameterProvider {
         + ` ${this._options.toolFilename} <command> -h`)
     });
 
-    this._actionsSubParser = this._argumentParser.addSubparsers({
+    this._actionsSubParser = this.argumentParser.addSubparsers({
       metavar: '<command>',
       dest: 'action'
     });
@@ -72,7 +55,7 @@ abstract class CommandLineParser extends CommandLineParameterProvider {
    * Defines a new action that can be used with the CommandLineParser instance.
    */
   public addAction(command: CommandLineAction): void {
-    command._buildParser(this._actionsSubParser);
+    command.buildParser(this._actionsSubParser);
     this._actions.push(command);
   }
 
@@ -89,21 +72,21 @@ abstract class CommandLineParser extends CommandLineParameterProvider {
       args = process.argv.slice(2);
     }
     if (args.length === 0) {
-      this._argumentParser.printHelp();
+      this.argumentParser.printHelp();
       return;
     }
-    const data: ICommandLineParserData = this._argumentParser.parseArgs();
+    const data: ICommandLineParserData = this.argumentParser.parseArgs();
 
-    this._processParsedData(data);
+    this.processParsedData(data);
 
     for (const action of this._actions) {
       if (action.options.actionVerb === data.action) {
-        this.selectedAction = action;
-        action._processParsedData(data);
+        this.chosenAction = action;
+        action.processParsedData(data);
         break;
       }
     }
-    if (!this.selectedAction) {
+    if (!this.chosenAction) {
       throw Error('Unrecognized action');
     }
 
@@ -115,8 +98,7 @@ abstract class CommandLineParser extends CommandLineParameterProvider {
    * the chosen action is executed.
    */
   protected onExecute(): void {
-    this.selectedAction._execute();
+    this.chosenAction.execute();
   }
 }
-
 export default CommandLineParser;

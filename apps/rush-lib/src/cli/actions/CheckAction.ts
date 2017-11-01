@@ -3,9 +3,12 @@
 
 import * as colors from 'colors';
 
-import RushConfigurationProject from '../../data/RushConfigurationProject';
-import { RushConstants } from '../../RushConstants';
-import { VersionMismatchFinder } from '../../data/VersionMismatchFinder';
+import {
+  RushConfigurationProject,
+  RushConstants,
+  VersionMismatchFinder
+} from '../../index';
+
 import RushCommandLineParser from './RushCommandLineParser';
 import { BaseRushAction } from './BaseRushAction';
 

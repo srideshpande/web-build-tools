@@ -3,6 +3,7 @@
 
 import * as child_process from 'child_process';
 import * as fsx from 'fs-extra';
+import * as os from 'os';
 import * as path from 'path';
 import { JsonFile } from '@microsoft/node-core-library';
 import { ITaskWriter } from '@microsoft/stream-collator';
@@ -10,12 +11,16 @@ import { ITaskWriter } from '@microsoft/stream-collator';
     IPackageDeps
   } from '@microsoft/package-deps-hash';
 
-import RushConfiguration from '../../data/RushConfiguration';
-import RushConfigurationProject from '../../data/RushConfigurationProject';
-import { RushConstants } from '../../RushConstants';
-import Utilities from '../../utilities/Utilities';
+import {
+  RushConfiguration,
+  RushConfigurationProject,
+  RushConstants,
+  ErrorDetector,
+  ErrorDetectionMode,
+  TaskError,
+  Utilities
+} from '../../index';
 import TaskStatus from './TaskStatus';
-import TaskError from './TaskError';
 import { ITaskDefinition } from '../taskRunner/ITask';
 import {
   PackageChangeAnalyzer
@@ -29,29 +34,45 @@ interface IPackageDependencies extends IPackageDeps {
  * A TaskRunner task which cleans and builds a project
  */
 export default class ProjectBuildTask implements ITaskDefinition {
-  public get name(): string {
-    return this._rushProject.packageName;
-  }
+  public name: string;
+  public isIncrementalBuildAllowed: boolean;
+
+  private _errorDetector: ErrorDetector;
+  private _errorDisplayMode: ErrorDetectionMode;
+  private _rushProject: RushConfigurationProject;
+  private _rushConfiguration: RushConfiguration;
+  private _production: boolean;
+  private _npmMode: boolean;
+  private _minimalMode: boolean;
 
   private _hasWarningOrError: boolean;
 
   constructor(
-    private _rushProject: RushConfigurationProject,
-    private _rushConfiguration: RushConfiguration,
-    private _commandToRun: string,
-    private _customFlags: string[],
-    public isIncrementalBuildAllowed: boolean
-  ) {}
+    rushProject: RushConfigurationProject,
+    rushConfiguration: RushConfiguration,
+    errorDetector: ErrorDetector,
+    errorDisplayMode: ErrorDetectionMode,
+    production: boolean,
+    npmMode: boolean,
+    minimalMode: boolean,
+    isIncrementalBuildAllowed: boolean
+  ) {
+    this.name = rushProject.packageName;
+    this._errorDetector = errorDetector;
+    this._errorDisplayMode = errorDisplayMode;
+    this._production = production;
+    this._npmMode = npmMode;
+    this._rushProject = rushProject;
+    this._rushConfiguration = rushConfiguration;
+    this._minimalMode = minimalMode;
+    this.isIncrementalBuildAllowed = isIncrementalBuildAllowed;
+  }
 
   public execute(writer: ITaskWriter): Promise<TaskStatus> {
     return new Promise<TaskStatus>((resolve: (status: TaskStatus) => void, reject: (errors: TaskError[]) => void) => {
-      try {
-        const build: string = this._getScriptToRun();
-        const deps: IPackageDependencies | undefined = this._getPackageDependencies(build, writer);
-        this._executeTask(build, writer, deps, resolve, reject);
-      } catch (error) {
-        reject([new TaskError('executing', error.toString())]);
-      }
+      const build: string = this._getBuildCommand();
+      const deps: IPackageDependencies | undefined = this._getPackageDependencies(build, writer);
+      this._executeTask(build, writer, deps, resolve, reject);
     });
   }
 
@@ -107,9 +128,29 @@ export default class ProjectBuildTask implements ITaskDefinition {
           fsx.unlinkSync(currentDepsPath);
         }
 
+        const cleanCommand: string | undefined = this._getScriptCommand('clean');
+
+        if (cleanCommand === undefined) {
+          // tslint:disable-next-line:max-line-length
+          throw new Error(`The project [${this._rushProject.packageName}] does not define a 'clean' command in the 'scripts' section of its package.json`);
+        }
+
+        // Run the clean step
+        if (!cleanCommand) {
+          // tslint:disable-next-line:max-line-length
+          writer.writeLine(`The clean command was registered in the package.json but is blank. Skipping 'clean' step...`);
+        } else {
+          writer.writeLine(cleanCommand);
+          try {
+            Utilities.executeShellCommand(cleanCommand, projectFolder, process.env, true);
+          } catch (error) {
+            throw new Error(`There was a problem running the 'clean' script: ${os.EOL} ${error.toString()}`);
+          }
+        }
+
         if (!buildCommand) {
           // tslint:disable-next-line:max-line-length
-          writer.writeLine(`The 'build' or 'test' command was registered in the package.json but is blank, so no action will be taken.`);
+          writer.writeLine(`The 'build' or 'test' command was registered in the package.json but is blank. Skipping 'clean' step...`);
           resolve(TaskStatus.Success);
           return;
         }
@@ -130,11 +171,26 @@ export default class ProjectBuildTask implements ITaskDefinition {
         });
 
         buildTask.on('close', (code: number) => {
+          // Detect & display errors
+          const errors: TaskError[] = this._errorDetector.execute(
+            writer.getStdOutput() + os.EOL + writer.getStdError());
+
+          for (let i: number = 0; i < errors.length; i++) {
+            writer.writeError(errors[i].toString(this._errorDisplayMode) + os.EOL);
+          }
+
+          // Display a summary of why the task failed or succeeded
+          if (errors.length) {
+            writer.writeError(`${errors.length} Error${errors.length > 1 ? 's' : ''}!` + os.EOL);
+          } else if (code) {
+            writer.writeError(`${buildCommand} returned error code: ${code}${os.EOL}`);
+          }
+
           // Write the logs to disk
           this._writeLogsToDisk(writer);
 
-          if (code) {
-            reject([new TaskError('error', `Returned error code: ${code}`)]);
+          if (code || errors.length > 0) {
+            reject(errors);
           } else if (this._hasWarningOrError) {
             resolve(TaskStatus.SuccessWithWarning);
           } else {
@@ -155,34 +211,35 @@ export default class ProjectBuildTask implements ITaskDefinition {
     }
   }
 
-  private _isBuildCommand(): boolean {
-    return this._commandToRun === 'build' || this._commandToRun === 'rebuild';
-  }
+  private _getBuildCommand(): string {
+    const build: string | undefined =
+      this._getScriptCommand('test') || this._getScriptCommand('build');
 
-  private _getScriptToRun(): string {
-    let script: string | undefined = undefined;
-    if (this._isBuildCommand()) {
-      script = this._getScriptCommand('test') || this._getScriptCommand('build');
-
-      if (script === undefined) {
-        // tslint:disable-next-line:max-line-length
-        throw new Error(`The project [${this._rushProject.packageName}] does not define a 'test' or 'build' command in the 'scripts' section of its package.json`);
-      }
-
-    } else {
-      script = this._getScriptCommand(this._commandToRun);
-
-      if (script === undefined) {
-        // tslint:disable-next-line:max-line-length
-        throw new Error(`The project [${this._rushProject.packageName}] does not define a '${this._commandToRun}' command in the 'scripts' section of its package.json`);
-      }
+    if (build === undefined) {
+      // tslint:disable-next-line:max-line-length
+      throw new Error(`The project [${this._rushProject.packageName}] does not define a 'test' or 'build' command in the 'scripts' section of its package.json`);
     }
 
-    if (script === '') {
-      return script;
+    if (build === '') {
+      return build;
     }
 
-    return `${script} ${this._customFlags.join(' ')}`;
+    // Normalize test command step
+    const args: string[] = [];
+
+    args.push(this._errorDisplayMode === ErrorDetectionMode.VisualStudioOnline ? '--no-color' : '--color');
+
+    if (this._production) {
+      args.push('--production');
+    }
+    if (this._npmMode) {
+      args.push('--npm');
+    }
+    if (this._minimalMode) {
+      args.push('--minimal');
+    }
+
+    return `${build} ${args.join(' ')}`;
   }
 
   private _getScriptCommand(script: string): string | undefined {
